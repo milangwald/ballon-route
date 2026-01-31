@@ -3,74 +3,40 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Earth Engine – Deutschland Karte</title>
+  <title>Earth Engine – Deutschland</title>
 
   <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Earth Engine JS API -->
-  <script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.365/earthengine-api.min.js"></script>
+  <!-- Earth Engine JS API (NEU) -->
+  <script src="https://cdn.jsdelivr.net/npm/@google/earthengine@1.7.10/build/ee_api_js.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, Arial, sans-serif;
-      margin: 24px;
-    }
-    button {
-      padding: 10px 14px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button[disabled] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    #log {
-      white-space: pre-wrap;
-      background: #f6f6f6;
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 12px;
-    }
-    #map {
-      height: 500px;
-      margin-top: 16px;
-      border-radius: 8px;
-    }
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    button[disabled] { opacity: 0.6; cursor: not-allowed; }
+    #log { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; margin-top: 12px; }
+    #map { height: 500px; margin-top: 16px; border-radius: 8px; }
   </style>
 </head>
 
 <body>
   <h1>Earth Engine – Deutschland</h1>
 
-  <!-- Button IMMER sichtbar -->
   <button id="btnLogin">Mit Google anmelden (Popup)</button>
-
   <div id="log"></div>
   <div id="map"></div>
 
   <script>
-    // =========================
-    // KONFIGURATION
-    // =========================
     const CLIENT_ID =
       "695834984820-3aac29g7u9e0rsmsnh4sh5kibmfq3560.apps.googleusercontent.com";
-
-    const SCOPES = [
-      "https://www.googleapis.com/auth/earthengine.readonly"
-    ];
+    const SCOPES = ["https://www.googleapis.com/auth/earthengine.readonly"];
 
     const btn = document.getElementById("btnLogin");
     const logEl = document.getElementById("log");
 
-    function log(msg) {
-      console.log(msg);
-      logEl.textContent += msg + "\n";
-    }
+    function log(m) { console.log(m); logEl.textContent += m + "\n"; }
 
     let authBusy = false;
     let authFinished = false;
@@ -78,52 +44,36 @@
     function setBusy(b) {
       authBusy = b;
       btn.disabled = b;
-      btn.textContent = b
-        ? "Login läuft … (Popup prüfen)"
-        : "Mit Google anmelden (Popup)";
+      btn.textContent = b ? "Login läuft … (Popup prüfen)" : "Mit Google anmelden (Popup)";
     }
 
-    // =========================
-    // KARTE: DEUTSCHLAND
-    // =========================
     function showGermanyMap() {
-      const map = L.map("map").setView(
-        [51.1657, 10.4515], // Deutschland-Mittelpunkt
-        6
-      );
-
-      L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          attribution: "© OpenStreetMap contributors",
-          maxZoom: 19
-        }
-      ).addTo(map);
-
+      const map = L.map("map").setView([51.1657, 10.4515], 6);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+        maxZoom: 19
+      }).addTo(map);
       log("🗺️ Deutschland-Karte angezeigt.");
     }
 
-    // =========================
-    // AUTH CALLBACKS
-    // =========================
     function onAuthSuccess() {
       authFinished = true;
       setBusy(false);
-      log("✅ Login erfolgreich.");
-      log("➡️ Initialisiere Earth Engine …");
+      log("✅ Login erfolgreich. Initialisiere Earth Engine …");
 
-      ee.initialize(
-        null,
-        null,
-        () => {
-          log("✅ Earth Engine bereit.");
-          showGermanyMap();
-        },
-        (e) => {
-          log("❌ ee.initialize() Fehler: " + (e?.message || e));
-          console.error(e);
-        }
-      );
+      ee.initialize(null, null, () => {
+        log("✅ Earth Engine bereit.");
+        showGermanyMap();
+
+        // Mini-Testcall (optional)
+        ee.Number(1).getInfo(
+          (v) => log("✅ EE Test OK: " + v),
+          (e) => log("❌ EE Test Fehler: " + (e?.message || e))
+        );
+      }, (e) => {
+        log("❌ ee.initialize() Fehler: " + (e?.message || e));
+        console.error(e);
+      });
     }
 
     function onAuthError(err) {
@@ -139,30 +89,21 @@
       log("ℹ️ Silent-Login nicht möglich. Bitte Button klicken.");
     }
 
-    // =========================
-    // BUTTON → POPUP LOGIN
-    // =========================
+    // Popup-Login (nur per User-Klick)
     btn.addEventListener("click", () => {
       if (authBusy) return;
-
       setBusy(true);
       log("➡️ Popup-Login startet …");
 
-      // WICHTIG: Popup nur hier (User-Geste!)
-      ee.data.authenticateViaPopup(
-        onAuthSuccess,
-        onAuthError
-      );
+      // Laut Doku: authenticateViaPopup(success, error)
+      ee.data.authenticateViaPopup(onAuthSuccess, onAuthError); // :contentReference[oaicite:4]{index=4}
     });
 
-    // =========================
-    // START
-    // =========================
+    // Start: Silent-Auth versuchen (Bonus)
     log("✅ Script gestartet");
     log("ee vorhanden? " + typeof ee);
-
-    // Silent-Versuch (BONUS, darf hängen!)
     log("➡️ Starte authenticateViaOauth() (silent Versuch) …");
+
     try {
       ee.data.authenticateViaOauth(
         CLIENT_ID,
@@ -171,13 +112,13 @@
         SCOPES,
         onImmediateFailed,
         true
-      );
+      ); // :contentReference[oaicite:5]{index=5}
     } catch (e) {
       log("❌ Exception bei authenticateViaOauth(): " + e);
       console.error(e);
     }
 
-    // Fallback: Wenn Silent-Auth hängt → Button bleibt nutzbar
+    // Falls Silent hängt: Button bleibt nutzbar
     setTimeout(() => {
       if (!authFinished) {
         setBusy(false);
