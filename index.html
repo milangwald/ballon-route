@@ -18,6 +18,7 @@
 <script>
   const CLIENT_ID =
     "695834984820-3aac29g7u9e0rsmsnh4sh5kibmfq3560.apps.googleusercontent.com";
+
   const SCOPES = ["https://www.googleapis.com/auth/earthengine.readonly"];
 
   const logEl = document.getElementById("log");
@@ -28,82 +29,32 @@
     logEl.textContent += m + "\n";
   }
 
-  let authInProgress = false;
-  function setBusy(b) {
-    authInProgress = b;
-    btn.disabled = b;
-    btn.textContent = b ? "Anmeldung läuft …" : "Mit Google anmelden";
-  }
-
   function onAuthenticated() {
-    setBusy(false);
-    log("✅ onAuthenticated() – Login ok");
-    try {
-      ee.initialize();
-      log("✅ ee.initialize() ok – Earth Engine initialisiert");
-    } catch (e) {
-      log("❌ ee.initialize() Fehler: " + e);
-      console.error(e);
-    }
+    log("✅ Login erfolgreich – initialisiere Earth Engine");
+    ee.initialize();
+    log("✅ Earth Engine bereit!");
   }
 
   function onAuthError(e) {
-    setBusy(false);
-    log("❌ onAuthError(): " + (e?.message || String(e)));
+    log("❌ Auth-Fehler: " + e);
     console.error(e);
   }
 
-  function onImmediateFailed() {
-    // Wir lassen den Button sowieso sichtbar – aber loggen es
-    setBusy(false);
-    log("ℹ️ onImmediateFailed() – kein Silent-Login, bitte Button klicken.");
-  }
-
-  log("✅ Script gestartet");
-  log("ee vorhanden? " + typeof ee);
-
-  // Button bleibt IMMER sichtbar (wichtig!)
-  setBusy(false);
-
-  // Silent-Auth versuchen, aber nicht darauf “warten”, dass er den Button steuert
-  try {
-    log("➡️ Starte authenticateViaOauth() (silent Versuch) …");
-    ee.data.authenticateViaOauth(
+  btn.addEventListener("click", () => {
+    log("➡️ Starte Redirect-Login …");
+    ee.data.authenticateViaRedirect(
       CLIENT_ID,
       onAuthenticated,
       onAuthError,
-      SCOPES,
-      onImmediateFailed,
-      true
+      SCOPES
     );
-  } catch (e) {
-    log("❌ Exception bei authenticateViaOauth(): " + e);
-    console.error(e);
-  }
-
-  // FALLBACK: Wenn nach 2 Sekunden weder success noch immediateFailed kam, sagen wir’s klar
-  setTimeout(() => {
-    log("ℹ️ Falls jetzt noch kein Login passiert ist: Browser/Privacy blockt Silent-Auth → Button nutzen.");
-  }, 2000);
-
-  // Popup-Login nur bei Klick, und nur einmal gleichzeitig
-  btn.addEventListener("click", () => {
-    if (authInProgress) {
-      log("⏳ Login läuft schon – bitte warten.");
-      return;
-    }
-    setBusy(true);
-    log("➡️ Popup-Login startet …");
-    try {
-      ee.data.authenticateViaPopup(onAuthenticated, onAuthError, SCOPES);
-    } catch (e) {
-      setBusy(false);
-      log("❌ Exception bei authenticateViaPopup(): " + e);
-      console.error(e);
-    }
   });
+
+  log("✅ Seite geladen");
 </script>
+
 
 
 </body>
 </html>
+
