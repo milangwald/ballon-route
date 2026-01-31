@@ -3,29 +3,66 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Earth Engine – Popup Login</title>
+  <title>Earth Engine – Deutschland Karte</title>
 
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
-    button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
-    button[disabled] { opacity: 0.7; cursor: not-allowed; }
-    #log { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; margin-top: 14px; }
-  </style>
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- Earth Engine JS API -->
   <script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.365/earthengine-api.min.js"></script>
-</head>
-<body>
-  <h1>Earth Engine Verbindung testen</h1>
 
-  <button id="btnLogin" hidden>Mit Google anmelden (Popup)</button>
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 24px;
+    }
+    button {
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #log {
+      white-space: pre-wrap;
+      background: #f6f6f6;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    #map {
+      height: 500px;
+      margin-top: 16px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Earth Engine – Deutschland</h1>
+
+  <!-- Button IMMER sichtbar -->
+  <button id="btnLogin">Mit Google anmelden (Popup)</button>
+
   <div id="log"></div>
+  <div id="map"></div>
 
   <script>
+    // =========================
+    // KONFIGURATION
+    // =========================
     const CLIENT_ID =
       "695834984820-3aac29g7u9e0rsmsnh4sh5kibmfq3560.apps.googleusercontent.com";
 
-    const SCOPES = ["https://www.googleapis.com/auth/earthengine.readonly"];
+    const SCOPES = [
+      "https://www.googleapis.com/auth/earthengine.readonly"
+    ];
 
     const btn = document.getElementById("btnLogin");
     const logEl = document.getElementById("log");
@@ -36,66 +73,117 @@
     }
 
     let authBusy = false;
+    let authFinished = false;
+
     function setBusy(b) {
       authBusy = b;
       btn.disabled = b;
-      btn.textContent = b ? "Login läuft … (Popup prüfen)" : "Mit Google anmelden (Popup)";
+      btn.textContent = b
+        ? "Login läuft … (Popup prüfen)"
+        : "Mit Google anmelden (Popup)";
     }
 
+    // =========================
+    // KARTE: DEUTSCHLAND
+    // =========================
+    function showGermanyMap() {
+      const map = L.map("map").setView(
+        [51.1657, 10.4515], // Deutschland-Mittelpunkt
+        6
+      );
+
+      L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19
+        }
+      ).addTo(map);
+
+      log("🗺️ Deutschland-Karte angezeigt.");
+    }
+
+    // =========================
+    // AUTH CALLBACKS
+    // =========================
     function onAuthSuccess() {
+      authFinished = true;
       setBusy(false);
-      log("✅ Auth OK. Initialisiere Earth Engine …");
+      log("✅ Login erfolgreich.");
+      log("➡️ Initialisiere Earth Engine …");
 
-      // Wichtig: erst nach Auth initialisieren
       ee.initialize(
-        null, null,
+        null,
+        null,
         () => {
-          log("✅ ee.initialize() OK – Earth Engine bereit.");
-
-          // Mini-Test: einfacher Call
-          ee.Number(1).getInfo(
-            (v) => log("✅ EE Test OK: " + v),
-            (e) => log("❌ EE Test Fehler: " + (e && e.message ? e.message : e))
-          );
+          log("✅ Earth Engine bereit.");
+          showGermanyMap();
         },
-        (e) => log("❌ ee.initialize() Fehler: " + (e && e.message ? e.message : e))
+        (e) => {
+          log("❌ ee.initialize() Fehler: " + (e?.message || e));
+          console.error(e);
+        }
       );
     }
 
     function onAuthError(err) {
+      authFinished = true;
       setBusy(false);
-      log("❌ Auth-Fehler: " + (err && err.message ? err.message : err));
-      // Button sichtbar lassen, damit du es erneut probieren kannst
-      btn.hidden = false;
+      log("❌ Auth-Fehler: " + (err?.message || err));
+      console.error(err);
     }
 
-    // 1) Erst OAuth konfigurieren + "silent" versuchen.
-    //    Wenn das nicht geht, zeigt die Doku: onImmediateFailed -> Button anzeigen -> Klick -> authenticateViaPopup()
-    log("✅ Script gestartet");
-    log("ee vorhanden? " + typeof ee);
-    log("➡️ Starte authenticateViaOauth() (silent Versuch) …");
+    function onImmediateFailed() {
+      authFinished = true;
+      setBusy(false);
+      log("ℹ️ Silent-Login nicht möglich. Bitte Button klicken.");
+    }
 
-    ee.data.authenticateViaOauth(
-      CLIENT_ID,
-      onAuthSuccess,
-      onAuthError,
-      SCOPES,
-      () => {
-        log("ℹ️ Silent-Login nicht möglich. Bitte Button klicken (Popup).");
-        btn.hidden = false;
-      },
-      true
-    );
-
-    // 2) Popup NUR per User-Klick starten (sonst blockt der Browser es).
+    // =========================
+    // BUTTON → POPUP LOGIN
+    // =========================
     btn.addEventListener("click", () => {
       if (authBusy) return;
+
       setBusy(true);
       log("➡️ Popup-Login startet …");
 
-      // Achtung: Laut API: authenticateViaPopup(success, error)
-      ee.data.authenticateViaPopup(onAuthSuccess, onAuthError);
+      // WICHTIG: Popup nur hier (User-Geste!)
+      ee.data.authenticateViaPopup(
+        onAuthSuccess,
+        onAuthError
+      );
     });
+
+    // =========================
+    // START
+    // =========================
+    log("✅ Script gestartet");
+    log("ee vorhanden? " + typeof ee);
+
+    // Silent-Versuch (BONUS, darf hängen!)
+    log("➡️ Starte authenticateViaOauth() (silent Versuch) …");
+    try {
+      ee.data.authenticateViaOauth(
+        CLIENT_ID,
+        onAuthSuccess,
+        onAuthError,
+        SCOPES,
+        onImmediateFailed,
+        true
+      );
+    } catch (e) {
+      log("❌ Exception bei authenticateViaOauth(): " + e);
+      console.error(e);
+    }
+
+    // Fallback: Wenn Silent-Auth hängt → Button bleibt nutzbar
+    setTimeout(() => {
+      if (!authFinished) {
+        setBusy(false);
+        log("ℹ️ Silent-Login hängt/blockiert. Popup benutzen.");
+      }
+    }, 2000);
   </script>
 </body>
 </html>
