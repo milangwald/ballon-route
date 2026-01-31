@@ -1,0 +1,96 @@
+<!-- 'x' steht für Code, den wir aus Codebeispielen (alle im Quellenverzeichnis verlinkt) abgewandelt haben -->
+<!DOCTYPE html>
+<html>
+<head>
+<title>SeeeeeeeeGans</title>
+<!-- Ausgabeeinstellungen für das html Dokument -->
+<style>
+   * { font-family: arial; }
+   table td { padding: 11px; }
+</style>
+
+
+
+<!-- Libraries für Javascript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>  <!--x-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>  <!--x-->
+// Einbindung der Earth Engine API
+<script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.365/earthengine-api.min.js"></script>
+<!-- Verlinkung zur JS Datei -->
+<script defer src="converterJS.js"></script>  <!--x-->
+</head>
+<body>
+<h1>Excel Datei einlesen!</h1>
+<!-- File picker -->
+<input type="file" id="demoA" accept=".xls,.xlsx">  <!--x-->
+<!-- leere Tabelle wird erstellt -->
+<table id="demoB"></table> <!--x-->
+
+<!--Graphen-->
+<div class="row justify-content-center mt-4"> <!--x-->
+  <div class="col-10"> <!--x-->
+    <div class="card"> <!--x-->
+      <div class="card-body"> <!--x-->
+        <p> </p>
+        <canvas id="myChart1"></canvas> <!--x-->
+        <p> </p>
+        <canvas id="myChart2"></canvas>
+        <p> </p>
+        <canvas id="myChart3"></canvas>
+        <p> </p>
+        <canvas id="myChart4"></canvas>
+        <p> </p>
+        <canvas id="myChart5"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!--Verbindung mit gee
+<script src="cdn.jsdelivr.net"></script>
+<script defer src="converterJS.js"></script>
+<script src="accounts.google.com" async defer></script>
+   
+</head>
+ 
+</head>
+<body>
+    <h1>Earth Engine Test</h1>
+  <p>Status: <span id="status">Bereit zum Testen...</span></p>
+-->
+  <!-- 2. Der Test-Button 
+  <button id="auth-btn">Mit Google anmelden & EE testen</button>
+ 
+      <script>
+        const CLIENT_ID = '695834984820-3aac29g7u9e0rsmsnh4sh5kibmfq3560.apps.googleusercontent.com';
+ 
+        document.getElementById('btn').onclick = () => {
+            // Prüfung ob Bibliothek geladen
+            if (typeof ee === 'undefined') {
+                alert("EE-Bibliothek noch nicht geladen!");
+                return;
+            }
+ 
+            document.getElementById('status').innerText = "Authentifizierung...";
+           
+            // Nutze die moderne Popup-Methode
+            ee.data.authenticateViaPopup(
+                () => {
+                    ee.initialize(null, null, () => {
+                        document.getElementById('status').innerText = "Erfolg!";
+                        console.log("EE Initialisiert");
+                    }, (err) => {
+                        document.getElementById('status').innerText = "Init-Fehler: " + err;
+                    });
+                },
+                (err) => {
+                    document.getElementById('status').innerText = "Auth-Fehler: " + err;
+                }
+            );
+        };
+    </script>
+  -->
+
+</body>
+</html>
