@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>OAuth Callback</title>
+</head>
+<body>
+  <script>
+    // Diese Seite wird NUR von Google nach dem Login aufgerufen
+    // Earth Engine greift hier intern das Token ab
+    if (window.opener) {
+      window.opener.postMessage(
+        { type: "oauth2callback" },
+        window.location.origin
+      );
+      window.close();
+    } else {
+      document.body.innerText = "Login abgeschlossen. Du kannst dieses Fenster schließen.";
+    }
+  </script>
+</body>
+</html>
