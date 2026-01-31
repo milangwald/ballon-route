@@ -42,38 +42,25 @@
       btn.textContent = b ? "Login läuft … (Popup prüfen)" : "Mit Google anmelden (Popup)";
     }
 
-function onAuthSuccess() {
-  setBusy(false);
-  log("✅ Auth OK. Initialisiere Earth Engine …");
+    function onAuthSuccess() {
+      setBusy(false);
+      log("✅ Auth OK. Initialisiere Earth Engine …");
 
-  ee.initialize(null, null, () => {
-    log("✅ Earth Engine bereit.");
+      // Wichtig: erst nach Auth initialisieren
+      ee.initialize(
+        null, null,
+        () => {
+          log("✅ ee.initialize() OK – Earth Engine bereit.");
 
-    // =========================
-    // 1) Leaflet-Karte erstellen
-    // =========================
-
-    const map = L.map("map").setView(
-      [51.1657, 10.4515], // Mittelpunkt von Deutschland
-      6                  // Zoom-Level (6 = ganz Deutschland)
-    );
-
-    // =========================
-    // 2) OpenStreetMap Layer
-    // =========================
-
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        attribution: "© OpenStreetMap contributors",
-        maxZoom: 19
-      }
-    ).addTo(map);
-
-    log("🗺️ Deutschland-Karte angezeigt.");
-  });
-}
-
+          // Mini-Test: einfacher Call
+          ee.Number(1).getInfo(
+            (v) => log("✅ EE Test OK: " + v),
+            (e) => log("❌ EE Test Fehler: " + (e && e.message ? e.message : e))
+          );
+        },
+        (e) => log("❌ ee.initialize() Fehler: " + (e && e.message ? e.message : e))
+      );
+    }
 
     function onAuthError(err) {
       setBusy(false);
@@ -112,4 +99,3 @@ function onAuthSuccess() {
   </script>
 </body>
 </html>
-
