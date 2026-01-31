@@ -3,106 +3,99 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Earth Engine Verbindung testen</title>
+  <title>Earth Engine – Popup Login</title>
+
   <style>
     body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
     button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    button[disabled] { opacity: 0.7; cursor: not-allowed; }
     #log { white-space: pre-wrap; background: #f6f6f6; padding: 12px; border-radius: 8px; margin-top: 14px; }
-    .ok { color: #0a7a0a; }
-    .err { color: #b00020; }
   </style>
 
-  <!-- 1) Earth Engine (NEU, nicht 0.1.365!) -->
-  <script src="https://cdn.jsdelivr.net/npm/@google/earthengine@1.7.10/build/ee_api_js.js"></script>
+  <!-- Earth Engine JS API -->
+  <script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.365/earthengine-api.min.js"></script>
 </head>
 <body>
   <h1>Earth Engine Verbindung testen</h1>
 
-  <button id="btnLogin" hidden>Mit Google anmelden</button>
-  <div id="log">Bereit…</div>
+  <button id="btnLogin" hidden>Mit Google anmelden (Popup)</button>
+  <div id="log"></div>
 
   <script>
-    const CLIENT_ID = "695834984820-3aac29g7u9e0rsmsnh4sh5kibmfq3560.apps.googleusercontent.com";
+    const CLIENT_ID =
+      "695834984820-3aac29g7u9e0rsmsnh4sh5kibmfq3560.apps.googleusercontent.com";
+
+    const SCOPES = ["https://www.googleapis.com/auth/earthengine.readonly"];
 
     const btn = document.getElementById("btnLogin");
     const logEl = document.getElementById("log");
 
-    function log(msg, cls) {
-      const line = document.createElement("div");
-      if (cls) line.className = cls;
-      line.textContent = msg;
-      logEl.appendChild(line);
+    function log(msg) {
       console.log(msg);
+      logEl.textContent += msg + "\n";
+    }
+
+    let authBusy = false;
+    function setBusy(b) {
+      authBusy = b;
+      btn.disabled = b;
+      btn.textContent = b ? "Login läuft … (Popup prüfen)" : "Mit Google anmelden (Popup)";
     }
 
     function onAuthSuccess() {
-      log("✅ Auth erfolgreich. Initialisiere Earth Engine…", "ok");
+      setBusy(false);
+      log("✅ Auth OK. Initialisiere Earth Engine …");
 
-      // Wichtig: initialize() erst NACH Auth.
+      // Wichtig: erst nach Auth initialisieren
       ee.initialize(
         null, null,
         () => {
-          log("✅ ee.initialize() erfolgreich.", "ok");
+          log("✅ ee.initialize() OK – Earth Engine bereit.");
 
-          // Mini-Testcall:
-          ee.Date(Date.now()).format("YYYY-MM-dd HH:mm:ss").getInfo((v) => {
-            log("✅ EE Test-Call OK. Serverzeit/Format: " + v, "ok");
-          }, (e) => {
-            log("❌ EE Test-Call Fehler: " + (e && e.message ? e.message : e), "err");
-          });
+          // Mini-Test: einfacher Call
+          ee.Number(1).getInfo(
+            (v) => log("✅ EE Test OK: " + v),
+            (e) => log("❌ EE Test Fehler: " + (e && e.message ? e.message : e))
+          );
         },
-        (e) => log("❌ ee.initialize() Fehler: " + (e && e.message ? e.message : e), "err")
+        (e) => log("❌ ee.initialize() Fehler: " + (e && e.message ? e.message : e))
       );
     }
 
     function onAuthError(err) {
-      log("❌ Auth-Fehler: " + err, "err");
-      btn.disabled = false;
-      btn.textContent = "Mit Google anmelden";
+      setBusy(false);
+      log("❌ Auth-Fehler: " + (err && err.message ? err.message : err));
+      // Button sichtbar lassen, damit du es erneut probieren kannst
       btn.hidden = false;
     }
 
-    function startSilentAuth() {
-      log("➡️ Versuche Silent-Auth (ohne Popup)…");
-
-      ee.data.authenticateViaOauth(
-        CLIENT_ID,
-        onAuthSuccess,
-        onAuthError,
-        /* extraScopes */ ["https://www.googleapis.com/auth/earthengine.readonly"],
-        /* onImmediateFailed */ () => {
-          log("ℹ️ Silent-Auth nicht möglich → Button anzeigen.", null);
-          btn.hidden = false;
-        },
-        /* suppressDefaultScopes */ true
-      );
-    }
-
-    function startPopupAuth() {
-      btn.disabled = true;
-      btn.textContent = "Login läuft… (Popup prüfen)";
-      log("➡️ Starte Popup-Login…");
-
-      ee.data.authenticateViaPopup(
-        CLIENT_ID,
-        onAuthSuccess,
-        onAuthError,
-        /* extraScopes */ ["https://www.googleapis.com/auth/earthengine.readonly"],
-        /* suppressDefaultScopes */ true
-      );
-    }
-
-    // Button klickt nur Popup (sauberer User-Intent)
-    btn.addEventListener("click", () => {
-      // Schutz gegen Doppelklick
-      if (btn.disabled) return;
-      startPopupAuth();
-    });
-
-    // Start
+    // 1) Erst OAuth konfigurieren + "silent" versuchen.
+    //    Wenn das nicht geht, zeigt die Doku: onImmediateFailed -> Button anzeigen -> Klick -> authenticateViaPopup()
     log("✅ Script gestartet");
-    log("ee vorhanden? " + (typeof ee));
-    startSilentAuth();
+    log("ee vorhanden? " + typeof ee);
+    log("➡️ Starte authenticateViaOauth() (silent Versuch) …");
+
+    ee.data.authenticateViaOauth(
+      CLIENT_ID,
+      onAuthSuccess,
+      onAuthError,
+      SCOPES,
+      () => {
+        log("ℹ️ Silent-Login nicht möglich. Bitte Button klicken (Popup).");
+        btn.hidden = false;
+      },
+      true
+    );
+
+    // 2) Popup NUR per User-Klick starten (sonst blockt der Browser es).
+    btn.addEventListener("click", () => {
+      if (authBusy) return;
+      setBusy(true);
+      log("➡️ Popup-Login startet …");
+
+      // Achtung: Laut API: authenticateViaPopup(success, error)
+      ee.data.authenticateViaPopup(onAuthSuccess, onAuthError);
+    });
   </script>
 </body>
 </html>
